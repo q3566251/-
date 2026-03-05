@@ -1,1 +1,738 @@
+<!--
+Save as: index.html
+Deploy on GitHub Pages:
+1) Create a repo
+2) Add this file as index.html
+3) Settings → Pages → Deploy from branch → main /(root)
+-->
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>廖美诗的花园</title>
+  <meta name="description" content="给廖美诗的一个小花园：很多花，会动。" />
+  <style>
+    :root{
+      --bg1:#fff7fb;
+      --bg2:#f3fbff;
+      --ink:#2a2a2a;
+      --muted:#666;
+      --card: rgba(255,255,255,.78);
+      --card2: rgba(255,255,255,.55);
+      --border: rgba(30,30,30,.10);
+      --shadow: 0 20px 70px rgba(20,20,20,.10);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      color:var(--ink);
+      background: radial-gradient(1200px 800px at 20% 20%, var(--bg1), transparent 60%),
+                  radial-gradient(1200px 900px at 80% 10%, var(--bg2), transparent 55%),
+                  linear-gradient(135deg, #ffffff, #f7fffb 55%, #fffaf0);
+      overflow:hidden;
+    }
 
+    /* Canvas fills the screen */
+    #garden{
+      position:fixed;
+      inset:0;
+      width:100vw;
+      height:100vh;
+      display:block;
+      z-index:0;
+    }
+
+    /* Soft vignette / glow overlay */
+    .glow{
+      position:fixed;
+      inset:-40px;
+      z-index:1;
+      pointer-events:none;
+      background:
+        radial-gradient(900px 700px at 20% 30%, rgba(255,182,193,.18), transparent 60%),
+        radial-gradient(900px 700px at 80% 20%, rgba(173,216,230,.18), transparent 60%),
+        radial-gradient(900px 700px at 60% 80%, rgba(152,251,152,.10), transparent 62%),
+        radial-gradient(1400px 900px at 50% 50%, rgba(255,255,255,.55), rgba(255,255,255,0) 65%);
+      filter: blur(0px);
+    }
+
+    /* Content */
+    .wrap{
+      position:relative;
+      z-index:2;
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+
+    .card{
+      width:min(860px, 92vw);
+      border:1px solid var(--border);
+      border-radius:28px;
+      background: linear-gradient(180deg, var(--card), var(--card2));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      overflow:hidden;
+    }
+
+    .top{
+      padding:28px 28px 10px 28px;
+      display:flex;
+      gap:18px;
+      align-items:flex-start;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+
+    .title{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      min-width:260px;
+      flex:1;
+    }
+    h1{
+      margin:0;
+      font-size:clamp(26px, 3.2vw, 40px);
+      letter-spacing:.5px;
+      line-height:1.12;
+    }
+    .subtitle{
+      margin:0;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.5;
+    }
+
+    .pillRow{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:flex-end;
+    }
+    .pill{
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.7);
+      border-radius:999px;
+      padding:10px 12px;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      box-shadow: 0 10px 30px rgba(30,30,30,.06);
+      user-select:none;
+    }
+    .pill label{font-size:12px; color:#444}
+    .pill input[type="range"]{width:150px}
+    .pill button{
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.85);
+      border-radius:999px;
+      padding:9px 12px;
+      cursor:pointer;
+      font-weight:600;
+      transition: transform .08s ease, box-shadow .2s ease;
+      box-shadow: 0 10px 25px rgba(30,30,30,.06);
+    }
+    .pill button:active{transform: translateY(1px) scale(.99)}
+    .pill button:hover{box-shadow: 0 14px 35px rgba(30,30,30,.09)}
+
+    .mid{
+      padding:10px 28px 22px 28px;
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:18px;
+      align-items:stretch;
+    }
+    @media (max-width: 780px){
+      .mid{grid-template-columns: 1fr}
+      .pillRow{justify-content:flex-start}
+    }
+
+    .note{
+      border:1px solid var(--border);
+      border-radius:22px;
+      padding:18px 18px;
+      background:rgba(255,255,255,.62);
+    }
+    .note h2{
+      margin:0 0 10px 0;
+      font-size:16px;
+      letter-spacing:.2px;
+    }
+    .note p{
+      margin:0;
+      color:#444;
+      font-size:14px;
+      line-height:1.7;
+    }
+
+    .actions{
+      border:1px solid var(--border);
+      border-radius:22px;
+      padding:18px;
+      background:rgba(255,255,255,.62);
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .actions .row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .btn{
+      flex:1;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.85);
+      border-radius:16px;
+      padding:12px 12px;
+      cursor:pointer;
+      font-weight:700;
+      transition: transform .08s ease, box-shadow .2s ease;
+      box-shadow: 0 10px 25px rgba(30,30,30,.06);
+      min-width:140px;
+    }
+    .btn:active{transform: translateY(1px) scale(.99)}
+    .btn:hover{box-shadow: 0 14px 35px rgba(30,30,30,.09)}
+    .hint{
+      font-size:12px;
+      color:#555;
+      line-height:1.6;
+    }
+
+    .footer{
+      padding:14px 28px 22px 28px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      border-top:1px solid rgba(30,30,30,.08);
+      background: linear-gradient(180deg, rgba(255,255,255,0), rgba(255,255,255,.35));
+    }
+    .tiny{
+      font-size:12px;
+      color:#666;
+    }
+    .kbd{
+      border:1px solid rgba(30,30,30,.18);
+      background:rgba(255,255,255,.75);
+      border-radius:10px;
+      padding:3px 8px;
+      font-size:12px;
+      color:#333;
+      box-shadow: 0 8px 18px rgba(30,30,30,.06);
+      display:inline-block;
+      margin-left:6px;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="garden"></canvas>
+  <div class="glow"></div>
+
+  <div class="wrap">
+    <div class="card">
+      <div class="top">
+        <div class="title">
+          <h1>廖美诗的花园</h1>
+          <p class="subtitle">很多花，会动。点一下屏幕会“开花”。</p>
+        </div>
+
+        <div class="pillRow">
+          <div class="pill">
+            <label for="density">花量</label>
+            <input id="density" type="range" min="60" max="420" value="240" />
+            <span id="densityVal" style="font-size:12px;color:#444;font-weight:700;min-width:32px;text-align:right;">240</span>
+          </div>
+          <div class="pill">
+            <label for="wind">风</label>
+            <input id="wind" type="range" min="0" max="100" value="40" />
+            <span id="windVal" style="font-size:12px;color:#444;font-weight:700;min-width:32px;text-align:right;">40</span>
+          </div>
+          <div class="pill">
+            <button id="toggle">暂停</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="mid">
+        <div class="note">
+          <h2>给你的一句小话</h2>
+          <p id="quote">
+            今天也要被温柔对待。你一抬头，就有花在替你开着。
+          </p>
+        </div>
+
+        <div class="actions">
+          <div class="row">
+            <button class="btn" id="bloom">一键开花</button>
+            <button class="btn" id="newQuote">换一句</button>
+          </div>
+          <div class="hint">
+            操作：点击/触摸屏幕会生成花束。<br/>
+            快捷键：<span class="kbd">Space</span> 暂停/继续
+            <span class="kbd">B</span> 开花
+            <span class="kbd">Q</span> 换句子
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <div class="tiny">Made for 廖美诗 · 花会一直开</div>
+        <div class="tiny">Tip：把页面全屏看更好</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== Utilities =====
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    const rand = (a, b) => a + Math.random() * (b - a);
+    const choice = (arr) => arr[(Math.random() * arr.length) | 0];
+
+    // ===== Quotes =====
+    const QUOTES = [
+      "今天也要被温柔对待。你一抬头，就有花在替你开着。",
+      "慢一点也没关系，花从不急着证明自己。",
+      "你已经很棒了，剩下的交给时间和风。",
+      "把疲惫交给夜晚，把希望交给清晨。",
+      "你的存在本身，就值得被喜欢。",
+      "你值得拥有轻松的一天，像花一样自然。",
+      "不用完美，也能被爱。",
+      "就算今天只是撑住了，也同样了不起。"
+    ];
+    const quoteEl = document.getElementById("quote");
+    document.getElementById("newQuote").addEventListener("click", () => {
+      quoteEl.textContent = choice(QUOTES);
+      sparkleBurst(cx, cy, 16);
+    });
+
+    // ===== Canvas Setup =====
+    const canvas = document.getElementById("garden");
+    const ctx = canvas.getContext("2d", { alpha: true });
+
+    let W = 0, H = 0, dpr = 1;
+    function resize() {
+      dpr = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
+      W = Math.floor(window.innerWidth);
+      H = Math.floor(window.innerHeight);
+      canvas.width = Math.floor(W * dpr);
+      canvas.height = Math.floor(H * dpr);
+      canvas.style.width = W + "px";
+      canvas.style.height = H + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    window.addEventListener("resize", resize);
+    resize();
+
+    // ===== Scene Parameters =====
+    const densitySlider = document.getElementById("density");
+    const windSlider = document.getElementById("wind");
+    const densityVal = document.getElementById("densityVal");
+    const windVal = document.getElementById("windVal");
+
+    let TARGET_COUNT = +densitySlider.value;
+    let WIND = +windSlider.value / 100; // 0..1
+    densityVal.textContent = TARGET_COUNT;
+    windVal.textContent = Math.round(WIND * 100);
+
+    densitySlider.addEventListener("input", () => {
+      TARGET_COUNT = +densitySlider.value;
+      densityVal.textContent = TARGET_COUNT;
+      syncPopulation();
+    });
+    windSlider.addEventListener("input", () => {
+      WIND = +windSlider.value / 100;
+      windVal.textContent = Math.round(WIND * 100);
+    });
+
+    // ===== Flower System =====
+    // We draw 3 types: blossoms (petals), daisies, sakura-like
+    const palette = [
+      { a: "#ff6ea8", b: "#ffd1e5" },
+      { a: "#ff8a5c", b: "#ffe2d6" },
+      { a: "#6dd3ff", b: "#d7f4ff" },
+      { a: "#7bffb6", b: "#d8ffe9" },
+      { a: "#b98bff", b: "#efe3ff" },
+      { a: "#ffd166", b: "#fff1c9" }
+    ];
+
+    class Flower {
+      constructor(x, y, scale=1, burst=false) {
+        this.x = x ?? rand(0, W);
+        this.y = y ?? rand(0, H);
+        this.vx = rand(-0.08, 0.08);
+        this.vy = rand(-0.12, 0.18);
+        this.ox = rand(0, Math.PI*2);
+        this.w = rand(0.4, 1.4);
+        this.rot = rand(0, Math.PI*2);
+        this.rotV = rand(-0.01, 0.01);
+        this.type = (Math.random()*3)|0; // 0..2
+        this.size = rand(7, 22) * scale;
+        this.alpha = burst ? 0.0 : rand(0.35, 0.85);
+        this.alphaTarget = burst ? rand(0.55, 0.92) : this.alpha;
+        this.pop = burst ? rand(0.6, 1.15) : rand(0.85, 1.05);
+        this.popV = burst ? rand(0.02, 0.05) : rand(0.002, 0.01);
+        this.life = burst ? rand(260, 520) : rand(900, 1600);
+        this.maxLife = this.life;
+        this.color = choice(palette);
+        this.center = choice(["#2f2f2f", "#4a3b2a", "#5d4b3a"]);
+        this.sparkle = Math.random() < 0.08;
+      }
+
+      step(t) {
+        const wind = WIND * (0.55 + 0.45*Math.sin(t*0.001 + this.ox));
+        const sway = Math.sin(t*0.0012 * this.w + this.ox) * 0.35;
+
+        this.vx += wind * 0.02 + sway * 0.002;
+        this.vy += 0.002;
+
+        // slight damping
+        this.vx *= 0.995;
+        this.vy *= 0.998;
+
+        this.x += this.vx * 60/60;
+        this.y += this.vy * 60/60;
+
+        this.rot += this.rotV + wind * 0.004;
+
+        // bloom animation
+        if (this.alpha < this.alphaTarget) this.alpha = Math.min(this.alphaTarget, this.alpha + 0.02);
+        this.pop = Math.min(1.0, this.pop + this.popV);
+
+        // wrap / bounce
+        if (this.x < -60) this.x = W + 60;
+        if (this.x > W + 60) this.x = -60;
+        if (this.y > H + 90) {
+          this.y = -90;
+          this.x = rand(0, W);
+          this.vx = rand(-0.08, 0.08);
+          this.vy = rand(-0.12, 0.18);
+          this.life = this.maxLife;
+        }
+
+        this.life -= 1;
+      }
+
+      draw() {
+        const s = this.size * this.pop;
+        const a = clamp(this.alpha * (this.life / this.maxLife + 0.2), 0, 1);
+
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rot);
+        ctx.globalAlpha = a;
+
+        // soft shadow glow
+        ctx.shadowColor = "rgba(0,0,0,0.10)";
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetY = 6;
+
+        if (this.type === 0) this.drawBlossom(s);
+        else if (this.type === 1) this.drawDaisy(s);
+        else this.drawSakura(s);
+
+        // sparkle dot
+        if (this.sparkle && a > 0.2) {
+          ctx.shadowBlur = 0;
+          ctx.globalAlpha = a * 0.55;
+          ctx.beginPath();
+          ctx.fillStyle = "rgba(255,255,255,0.85)";
+          ctx.arc(s*0.9, -s*0.9, Math.max(1.2, s*0.08), 0, Math.PI*2);
+          ctx.fill();
+        }
+
+        ctx.restore();
+      }
+
+      petalPath(r, w=0.55) {
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.bezierCurveTo(r*w, -r*0.15, r*0.95, -r*0.55, 0, -r);
+        ctx.bezierCurveTo(-r*0.95, -r*0.55, -r*w, -r*0.15, 0, 0);
+        ctx.closePath();
+      }
+
+      drawBlossom(s) {
+        const petals = 6 + ((Math.random()*2)|0);
+        for (let i=0;i<petals;i++){
+          ctx.save();
+          ctx.rotate((Math.PI*2/petals)*i);
+          const g = ctx.createLinearGradient(0, -s, 0, 0);
+          g.addColorStop(0, this.color.b);
+          g.addColorStop(1, this.color.a);
+          ctx.fillStyle = g;
+          ctx.strokeStyle = "rgba(255,255,255,0.55)";
+          ctx.lineWidth = Math.max(0.7, s*0.06);
+          this.petalPath(s, 0.55);
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        }
+        // center
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = this.center;
+        ctx.beginPath();
+        ctx.arc(0, 0, s*0.22, 0, Math.PI*2);
+        ctx.fill();
+
+        // tiny pollen
+        ctx.globalAlpha *= 0.9;
+        ctx.fillStyle = "rgba(255,220,140,0.9)";
+        for (let i=0;i<7;i++){
+          ctx.beginPath();
+          ctx.arc(rand(-s*0.18,s*0.18), rand(-s*0.18,s*0.18), Math.max(1, s*0.05), 0, Math.PI*2);
+          ctx.fill();
+        }
+      }
+
+      drawDaisy(s) {
+        const petals = 10 + ((Math.random()*4)|0);
+        for (let i=0;i<petals;i++){
+          ctx.save();
+          ctx.rotate((Math.PI*2/petals)*i);
+          const g = ctx.createLinearGradient(0, -s, 0, 0);
+          g.addColorStop(0, "rgba(255,255,255,0.95)");
+          g.addColorStop(1, this.color.b);
+          ctx.fillStyle = g;
+          ctx.strokeStyle = "rgba(0,0,0,0.06)";
+          ctx.lineWidth = Math.max(0.6, s*0.04);
+          this.petalPath(s*0.95, 0.38);
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        }
+        // center
+        ctx.shadowBlur = 0;
+        const cg = ctx.createRadialGradient(0,0, s*0.05, 0,0, s*0.35);
+        cg.addColorStop(0, "#ffd166");
+        cg.addColorStop(1, "#e0a800");
+        ctx.fillStyle = cg;
+        ctx.beginPath();
+        ctx.arc(0, 0, s*0.28, 0, Math.PI*2);
+        ctx.fill();
+      }
+
+      drawSakura(s) {
+        // 5 petals, sakura-like notch
+        const petals = 5;
+        for (let i=0;i<petals;i++){
+          ctx.save();
+          ctx.rotate((Math.PI*2/petals)*i);
+          const g = ctx.createLinearGradient(0, -s, 0, 0);
+          g.addColorStop(0, this.color.b);
+          g.addColorStop(1, this.color.a);
+          ctx.fillStyle = g;
+          ctx.strokeStyle = "rgba(255,255,255,0.55)";
+          ctx.lineWidth = Math.max(0.7, s*0.06);
+
+          // petal with notch
+          ctx.beginPath();
+          ctx.moveTo(0,0);
+          ctx.bezierCurveTo(s*0.55, -s*0.12, s*0.95, -s*0.55, 0, -s);
+          ctx.bezierCurveTo(-s*0.95, -s*0.55, -s*0.55, -s*0.12, 0, 0);
+
+          // notch
+          ctx.moveTo(0, -s*0.78);
+          ctx.quadraticCurveTo(s*0.12, -s*0.70, 0, -s*0.62);
+          ctx.quadraticCurveTo(-s*0.12, -s*0.70, 0, -s*0.78);
+
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // center
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "rgba(70,40,40,0.85)";
+        ctx.beginPath();
+        ctx.arc(0, 0, s*0.18, 0, Math.PI*2);
+        ctx.fill();
+      }
+    }
+
+    class Sparkle {
+      constructor(x,y){
+        this.x=x; this.y=y;
+        this.vx=rand(-1.2,1.2);
+        this.vy=rand(-2.2,-0.2);
+        this.life=rand(18,32);
+        this.maxLife=this.life;
+        this.r=rand(1.2,2.5);
+      }
+      step(){
+        this.vy += 0.10;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.life -= 1;
+      }
+      draw(){
+        const a = clamp(this.life/this.maxLife,0,1);
+        ctx.save();
+        ctx.globalAlpha = a;
+        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        ctx.beginPath();
+        ctx.arc(this.x,this.y,this.r,0,Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    let flowers = [];
+    let sparkles = [];
+
+    function seedFlowers(n){
+      flowers = [];
+      for (let i=0;i<n;i++){
+        const f = new Flower(rand(0,W), rand(0,H), 1, false);
+        // make background feel layered: smaller/softer far away
+        const depth = Math.random(); // 0 far, 1 near
+        f.size *= (0.6 + 0.9*depth);
+        f.alpha *= (0.55 + 0.6*depth);
+        f.vy += (0.02 + 0.18*depth);
+        flowers.push(f);
+      }
+    }
+
+    function syncPopulation(){
+      const cur = flowers.length;
+      if (cur < TARGET_COUNT){
+        for (let i=0;i<(TARGET_COUNT-cur);i++){
+          const f = new Flower(rand(0,W), rand(0,H), 1, true);
+          flowers.push(f);
+        }
+      } else if (cur > TARGET_COUNT){
+        flowers.splice(TARGET_COUNT, cur - TARGET_COUNT);
+      }
+    }
+
+    function sparkleBurst(x,y,count){
+      for(let i=0;i<count;i++) sparkles.push(new Sparkle(x + rand(-8,8), y + rand(-8,8)));
+    }
+
+    // initial seed
+    seedFlowers(TARGET_COUNT);
+
+    // ===== Interaction =====
+    let cx = W*0.5, cy = H*0.55;
+
+    function bloomAt(x,y, amount=26){
+      cx = x; cy = y;
+      sparkleBurst(x,y, 22);
+      for(let i=0;i<amount;i++){
+        const f = new Flower(x + rand(-60,60), y + rand(-60,60), rand(0.75, 1.25), true);
+        f.vx += rand(-0.35, 0.35);
+        f.vy += rand(-0.65, 0.15);
+        flowers.push(f);
+      }
+      // keep near target by trimming oldest extras softly
+      if (flowers.length > TARGET_COUNT + 120){
+        flowers.splice(0, flowers.length - (TARGET_COUNT + 120));
+      }
+    }
+
+    // click/touch => bloom
+    window.addEventListener("pointerdown", (e) => {
+      bloomAt(e.clientX, e.clientY, 34);
+    }, { passive:true });
+
+    // Buttons
+    document.getElementById("bloom").addEventListener("click", () => {
+      bloomAt(W*0.5, H*0.6, 60);
+    });
+
+    // Pause/Resume
+    let running = true;
+    const toggleBtn = document.getElementById("toggle");
+    function toggle(){
+      running = !running;
+      toggleBtn.textContent = running ? "暂停" : "继续";
+      if (running) requestAnimationFrame(loop);
+    }
+    toggleBtn.addEventListener("click", toggle);
+
+    // Keyboard shortcuts
+    window.addEventListener("keydown", (e) => {
+      if (e.code === "Space") { e.preventDefault(); toggle(); }
+      if (e.key === "b" || e.key === "B") bloomAt(W*0.5, H*0.6, 60);
+      if (e.key === "q" || e.key === "Q") {
+        quoteEl.textContent = choice(QUOTES);
+        sparkleBurst(W*0.5, H*0.6, 16);
+      }
+    });
+
+    // ===== Background gradient painting =====
+    function paintBackground(t){
+      // translucent background to create soft trails
+      ctx.save();
+      ctx.globalAlpha = 0.18;
+      ctx.fillStyle = "rgba(255,255,255,1)";
+      ctx.fillRect(0,0,W,H);
+      ctx.restore();
+
+      // subtle moving haze
+      const s1 = Math.sin(t*0.00035)*0.5+0.5;
+      const s2 = Math.cos(t*0.00027)*0.5+0.5;
+
+      const g = ctx.createRadialGradient(W*(0.25+0.08*s1), H*(0.25+0.08*s2), 50, W*0.5, H*0.5, Math.max(W,H)*0.9);
+      g.addColorStop(0, "rgba(255,182,193,0.10)");
+      g.addColorStop(0.35, "rgba(173,216,230,0.10)");
+      g.addColorStop(0.7, "rgba(152,251,152,0.06)");
+      g.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(0,0,W,H);
+    }
+
+    // ===== Loop =====
+    let last = performance.now();
+    function loop(now){
+      if (!running) return;
+
+      const t = now;
+      const dt = Math.min(32, now - last);
+      last = now;
+
+      // adjust to resize
+      if (W !== window.innerWidth || H !== window.innerHeight) resize();
+
+      paintBackground(t);
+
+      // wind-driven drift: make it slightly stronger with dt
+      const stepCount = dt > 16 ? 2 : 1;
+
+      for (let k=0;k<stepCount;k++){
+        for (const f of flowers) f.step(t);
+        for (const s of sparkles) s.step();
+        sparkles = sparkles.filter(s => s.life > 0);
+
+        // keep population close to target (small correction)
+        if ((t|0) % 300 === 0) syncPopulation();
+      }
+
+      // draw flowers with depth illusion (sort by size)
+      flowers.sort((a,b)=>a.size-b.size);
+      for (const f of flowers) f.draw();
+      for (const s of sparkles) s.draw();
+
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+
+    // Ensure slider changes reflect quickly
+    setInterval(syncPopulation, 1200);
+
+    // Start with a gentle bloom
+    setTimeout(() => bloomAt(W*0.52, H*0.62, 42), 350);
+  </script>
+</body>
+</html>
